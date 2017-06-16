@@ -4,6 +4,9 @@
     if ('undefined' === typeof window.stanConfigurableItems) {
 
 
+        var apis = {};
+
+
         function getPanelByItem(jTarget) {
             var jNext = jTarget.next();
             if (jNext.hasClass("stan-configurable-item-panel")) {
@@ -18,7 +21,7 @@
             this.jContext = null;
         };
         window.stanConfigurableItems.prototype = {
-            init: function (jContext) {
+            _init: function (jContext) {
                 this.jContext = jContext;
                 var zis = this;
 
@@ -45,7 +48,9 @@
             },
             /**
              *
-             * Gets info from the selected item and call the corresponding callback (onSuccess or onError)
+             * Gets info from the selected item (using the getData method of the module) and call
+             * the corresponding callback (onSuccess or onError)
+             *
              *
              * @param onSuccess ( id, options )
              * @param onError ( errMsg )
@@ -111,11 +116,40 @@
         };
 
 
-        var o = new window.stanConfigurableItems();
+        //----------------------------------------
+        // STATIC METHODS (bound to the class "symbol" rather than a particular instance
+        //----------------------------------------
+        var initCallbacks = [];
 
+        /**
+         * @param apiName
+         * @param initCallback ( oApi )
+         */
+        stanConfigurableItems.moduleAddCallback = function (apiName, initCallback) {
+            initCallbacks.push([apiName, initCallback]);
+        };
 
-        stanConfigurableItems.inst = function () {
+        stanConfigurableItems.init = function (apiName, jContext) {
+            var o = new window.stanConfigurableItems();
+
+            for (var i in initCallbacks) {
+                var _apiName = initCallbacks[i][0];
+                var initCallback = initCallbacks[i][1];
+                if (_apiName === apiName) {
+                    initCallback(o);
+                }
+            }
+            o._init(jContext);
+            apis[apiName] = o;
             return o;
+        };
+
+
+        stanConfigurableItems.inst = function (apiName) {
+            if (apiName in apis) {
+                return apis[apiName];
+            }
+            throw new Error("No api with name " + apiName);
         };
     }
 })();

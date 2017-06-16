@@ -35,41 +35,145 @@ That's it.
 How does it work?
 ================
 
-Stan configurable items can help you in a modular architecture, where your application wants to provide
-a semantical choice to the user.
 
 
-There is a javascript api located in the **stand-configurable-items.js** file.
-
-The file contains the **stanConfigurableItems** api which contains the following method:
-
-- init ( jContext )
-- execute ( onSuccess, onError )
-- addHandler ( name, oHandler )
+Right off the bat, if you learn by example, go directly to the "Code Example" section at the bottom of this page.
 
 
-External modules can create their own javascript file and hook into the **stanConfigurableItems** api
-by using the **addHandler** method.
+ 
+Init
+------------
+There is the **stanConfigurableItems** api, located in the **stan-configurable-items.js** file.
 
-A module will create an instance (and pass it via the **addHandler** method) which contains the following methods:
+To instantiate the api, you need to call the **init** static method, like this:
 
-- init ( jModulePanel )
-- getData ( jModulePanel )
-- ?openPanel ( jModulePanel )
-- ?closePanel ( jModulePanel )
+```js
+var jStanPayment = $(".stan-configurable-items-payment");
+var oStanPayment = stanConfigurableItems.init("payment", jStanPayment);
+```
+
+In the above example, jStanPayment is the jQuery element that contains the whole
+stanConfigurableItems gui that you want (you can have multiple stanConfigurableItems guis
+on the same page if you want).
+
+It's the context if you will, and lll the magic will happen inside this context.
+The init method's first argument is the name of your api (you can have multiple apis running on the same page).
+ 
+ 
+Modules
+------------
+ 
+Now before you actually call this init statement, you need to create your modules first.
+
+A module is a piece of code that handles one or more stan items.
+
+It's called a module because it should be created by your application modules.
+
+Actually, that's the main concern of the stanConfigurableItems system: modules that don't know anything about
+other modules can add their items in the centralized stan widget handled by the stanConfigurableItems api.
+
+Modules should create a file, one per module, which makes a call to the **moduleAddCallback** method, like this:
+
+```js
+stanConfigurableItems.moduleAddCallback("payment", function (oApi) {});
+```
+
+To see a concrete example in action, open the **example-module1.js** file somewhere in this repository.
+ 
+The first argument is the apiName. It has to be the same as the apiName that you've defined earlier with the **init** method (top example of this section).
+
+The second argument is the initCallback; it receives the relevant **stanConfigurableItems** api instance (the "payment" instance in this example,
+assuming we are creating a widget where the user can choose a payment method on an e-commerce checkout page).
+
+Receiving the stan instance is the opportunity for the module to add the module handler to the api the like this:
+
+```js
+oApi.addHandler("MyModule1", new ModuleHandler());
+```
+
+A module handler is a callback that is responsible for returning the data of an item's panel.
+A module handler can also be used for opening/closing the item's panel.
+
+Here are the four methods that a module handler can have:
+
+- init
+- openPanel
+- closePanel
+- getData
+
+Open a module file example for more details.
 
 
-The most important method is getData.
-
-Sometimes you will need an init method to listen to the panel changes, so that you can prepare the data to be returned
-by getData. 
+The first argument is the handler name, and the second argument is the handler instance.
 
 
-When all modules's handlers are attached to the **stanConfigurableItems** api, you can  the system using the init method,
-which in turn call the **init** method of every handler attached to the api.
 
-Then later, after the user has configured the items she want and clicks the **submit** button,
-you can collect and post the selected item's options using the **execute** method.
+
+
+
+
+
+
+  
+Execute: the role of the different actors
+------------
+
+The **stanConfigurableItems** api instance takes care of opening/closing the selected item panels when you click on the items (see figure).
+
+It will also handle their ids; this means when you call the **execute** method (which is the last method we're discussing here),
+the ids passed to that method are RETRIEVED BY the **stanConfigurableItems** api instance.
+
+However, the execute method also needs to be passed the panel options, and that is the responsibility of your module:
+your module has (must have) a **getData** method which returns the options of the panel it handles.
+
+
+So, what you should do is let the stan api handle your items, and add a submit button below the stack.
+
+When the user clicks on this button, call the **execute** method, like this:
+
+
+```js
+oStanPayment.execute(function (id, options) {
+    console.log("id", id);
+    console.log("options", options);
+
+
+}, function (errMsg) {
+    console.log("stan error: ", errMsg);
+});
+
+```
+
+The execute method takes two arguments: a success callback and an error callback.
+
+In the background, the stan api will take care of calling the "getData" method of the module corresponding to the selected
+item/panel.
+
+
+
+The markup
+--------------
+
+I almost forgot the markup, without which none of what's explained above works (oops)!!
+
+Here is the functional markup used by stanConfigurableItems:
+
+```txt
+- (stan context)
+----- stan item:  .stan-configurable-item  .selected (when selected)   data-id="$n"
+----- stan item panel:  .stan-configurable-item-panel  data-name="$moduleName"  (the name if the handler defined in your module code thanks to the api's addHandler method)
+```
+
+The "stan item panel" must be next to the "stan item".
+
+Note: don't forget to set the **data-name** correctly otherwise it won't work (panels won't open).
+
+
+
+
+
+
+
 
 
 
@@ -126,14 +230,14 @@ Here is the main code example.
 
 <div class="stan-configurable-items">
     <div class="stan-configurable-item selected" data-id="1">Formatted item 1</div>
-    <div class="stan-configurable-item-panel" data-id="1" data-name="Module1">
+    <div class="stan-configurable-item-panel" data-name="MyModule1">
         Options for formatted item 1.
         <div class="panel">
             <label for="aaa">Is that what you want?</label> <input id="aaa" type="checkbox" value="1" checked>
         </div>
     </div>
     <div class="stan-configurable-item" data-id="2">Formatted item 2</div>
-    <div class="stan-configurable-item-panel" data-id="2" data-name="Module2">
+    <div class="stan-configurable-item-panel" data-name="MyModule2">
         Options for formatted item 2.
         <div class="panel">
             <input type="text" value="zoo">
@@ -143,7 +247,7 @@ Here is the main code example.
         </div>
     </div>
     <div class="stan-configurable-item" data-id="3">Formatted item 3</div>
-    <div class="stan-configurable-item-panel" data-id="3" data-name="Module3">
+    <div class="stan-configurable-item-panel" data-name="MyModule3">
         Options for formatted item 3.
         <div class="panel">
             <label>
@@ -170,13 +274,13 @@ Here is the main code example.
         // APPLICATION CODE
         //----------------------------------------
         var jStanConfigurableItems = $(".stan-configurable-items");
-        stanConfigurableItems.inst().init(jStanConfigurableItems);
+        var oMyStanApi = stanConfigurableItems.init("payment", jStanConfigurableItems);
 
 
         $('#api-demo-buttons').on('click', function (e) {
             var jTarget = $(e.target);
             if (jTarget.hasClass("validate")) {
-                stanConfigurableItems.inst().execute(function (id, options) {
+                oMyStanApi.execute(function (id, options) {
                     console.log("do something useful with id: " + id + " and the options", options);
                 }, function (err) {
                     console.log("oops", err);
@@ -193,6 +297,10 @@ Here is the main code example.
 
 
 
+
+
+
+
 ```
 
 
@@ -205,6 +313,10 @@ The **example-module1.js** and **example-module2.js** modules are also in this r
 History Log
 ------------------
     
+- 1.2.0 -- 2017-06-16
+
+    - multiple instances is now possible
+        
 - 1.1.0 -- 2017-06-16
 
     - now detect clicks INSIDE a stan configurable item
