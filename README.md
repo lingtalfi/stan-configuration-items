@@ -205,6 +205,10 @@ The **example-module1.js** and **example-module2.js** modules are also in this r
 History Log
 ------------------
     
+- 1.1.0 -- 2017-06-16
+
+    - now detect clicks INSIDE a stan configurable item
+        
 - 1.0.0 -- 2017-06-14
 
     - initial commit

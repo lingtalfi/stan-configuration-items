@@ -25,15 +25,15 @@
 
                 jContext.on('click', function (e) {
                     var jTarget = $(e.target);
-                    if (jTarget.hasClass("stan-configurable-item")) {
+                    var jClosest = jTarget.closest(".stan-configurable-item");
+                    if (jClosest.length) {
                         jContext.find('.stan-configurable-item').removeClass("selected");
-                        jTarget.addClass("selected");
-                        var jNext = getPanelByItem(jTarget);
+                        jClosest.addClass("selected");
+                        var jNext = getPanelByItem(jClosest);
                         if (false !== jNext) {
                             var name = jNext.attr("data-name");
                             zis._openPanel(jNext);
                         }
-                        return false;
                     }
                 });
 
